@@ -128,8 +128,7 @@ gazebo_msgs::SpawnModel createSpawnRequest(int modelType, geometry_msgs::Point p
 	else if (modelType == SUB)
 	{
 		// the turtlebot burger from turtlebot_sim package is used to model the submarine
-		spawn.request.model_name = "submarine" + std::to_string(numSubs);
-		numSubs++;
+		spawn.request.model_name = "submarine";
 		// create path to sdf model in repository
 		modelPath = modelDir + "turtlebot3_burger/model.sdf";
 	}
