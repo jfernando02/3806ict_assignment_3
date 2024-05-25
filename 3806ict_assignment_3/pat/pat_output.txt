@@ -1,9 +1,9 @@
 =======================================================
-Assertion: VisitedMove() reaches home
+Assertion: UnvisitedMove() reaches noSurvivors
 ********Verification Result********
-The Assertion (VisitedMove() reaches home) is VALID.
+The Assertion (UnvisitedMove() reaches noSurvivors) is VALID.
 The following trace leads to a state where the condition is satisfied.
-<init -> moveLeft -> moveUp -> moveLeft -> moveLeft -> moveUp -> moveUp -> moveUp -> moveUp>
+<init>
 
 ********Verification Setting********
 Admissible Behavior: All
@@ -12,9 +12,9 @@ System Abstraction: False
 
 
 ********Verification Statistics********
-Visited States:19189
-Total Transitions:29105
-Time Used:4.3850633s
-Estimated Memory Used:47202.272KB
+Visited States:1
+Total Transitions:0
+Time Used:0.0052847s
+Estimated Memory Used:8538.008KB
 
 

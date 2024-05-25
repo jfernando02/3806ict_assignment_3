@@ -35,7 +35,6 @@ ros::ServiceClient setClient;
 
 // initialise number of spawned survivors
 int numSurvivors = 0;
-int numSubs = 0;
 // initialise check to see if submarine has already been spawned (its moved if already spawned)
 bool submarineSpawned = false;
 // home directory and model directory
@@ -132,6 +131,13 @@ gazebo_msgs::SpawnModel createSpawnRequest(int modelType, geometry_msgs::Point p
 		// create path to sdf model in repository
 		modelPath = modelDir + "turtlebot3_burger/model.sdf";
 	}
+	else if (modelType == SUB2)
+	{
+		// the turtlebot burger from turtlebot_sim package is used to model the submarine
+		spawn.request.model_name = "submarine2";
+		// create path to sdf model in repository
+		modelPath = modelDir + "turtlebot3_burger/model.sdf";
+	}
 
 	// open the file containing the sdf model
 	std::ifstream t(modelPath);
@@ -188,6 +194,20 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 					set.request.model_state.pose.position = point;
 					setClient.call(set);
 				}
+
+				// was a survivor, now the sub2. must delete the survivor and replace
+				// with the sub
+				if (oldIndex == SURVIVOR && newIndex == SUB2)
+				{
+					// Delete the "Survivor"
+					del.request.model_name = objectPositions[point];
+					deleteClient.call(del);
+					objectPositions.erase(point);
+					// Move the "Sub"
+					set.request.model_state.model_name = "submarine2";
+					set.request.model_state.pose.position = point;
+					setClient.call(set);
+				}
 				// old position was empty or visited, now it holds the sub, so move/spawn the sub
 				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB)
 				{
@@ -203,6 +223,26 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 					{
 						// Spawn the "Sub"
 						spawn = createSpawnRequest(SUB, point);
+						objectPositions[point] = spawn.request.model_name;
+						spawnClient.call(spawn);
+						submarineSpawned = true;
+					}
+				}
+				// old position was empty or visited, now it holds the sub, so move/spawn the sub
+				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB2)
+				{
+					if (submarineSpawned)
+					{
+						// Move the "Sub"
+						ROS_INFO("Moving sub2 to pos: (%.0f, %.0f)", point.x, point.y);
+						set.request.model_state.model_name = "submarine2";
+						set.request.model_state.pose.position = point;
+						setClient.call(set);
+					}
+					else
+					{
+						// Spawn the "Sub2"
+						spawn = createSpawnRequest(SUB2, point);
 						objectPositions[point] = spawn.request.model_name;
 						spawnClient.call(spawn);
 						submarineSpawned = true;
