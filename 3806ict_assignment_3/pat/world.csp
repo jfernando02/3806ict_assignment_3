@@ -1,6 +1,6 @@
 #define Visited -1;
 #define Unvisited 0;
-#define Sub 1;
+#define Sub 2;
 #define Survivor 3;
 
 #define SUB_HOME_X 0;
@@ -11,16 +11,16 @@
 
 var world[Rows][Cols]:{Visited..Survivor} = [
 -1, -1, -1, -1, -1, -1, -1, -1, 
--1, -1, -1, -1, -1, -1, -1, -1, 
--1, -1, -1, -1, -1, -1, -1, -1, 
--1, -1, -1, -1, -1, -1, -1, -1, 
--1, -1, -1, -1, -1, -1, -1, 0, 
--1, -1, -1, -1, -1, 0, 0, 0, 
--1, -1, -1, -1, -1, 0, 0, 0, 
+-1, 0, 0, 0, -1, -1, -1, -1, 
+0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0, 0, 0, 
 0, 0, 0, 0, 0, 0, 0, 0
 ];
 
 // Position of sub
 var xpos:{0..Rows-1} = 0;
-var ypos:{0..Cols-1} = 0;
+var ypos:{0..Cols-1} = 7;
 var onBoard:{0..maxCapacity} = 0;

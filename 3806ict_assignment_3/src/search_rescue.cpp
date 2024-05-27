@@ -57,7 +57,7 @@ class Sub{
 		std::string next_move;
 		int currentPath;
 		int OnBoard;
-		std::string id;
+		int id;
 };
 // -- function declarations --
 // takes the message given by the survivor sensors and updates the robot's internal representation (curr_world)
@@ -130,14 +130,14 @@ int main(int argc, char *argv[])
 	sub.sub_y=sub_y;
 	sub.currentPath=currentPath;
 	sub.OnBoard=OnBoard;
-	sub.id="";
+	sub.id=1;
 
 	Sub sub2;
 	sub2.sub_x=sub_x;
 	sub2.sub_y=sub_y;
 	sub2.currentPath=currentPath;
 	sub2.OnBoard=OnBoard;
-	sub2.id="2";
+	sub2.id=2;
 
 	std::list<Sub> subs = {sub, sub2};
 
@@ -456,7 +456,7 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub)
 	// write defines
 	file << "#define Visited " << VISITED << ";\n";
 	file << "#define Unvisited " << EMPTY << ";\n";
-	file << "#define Sub " << SUB << ";\n";	
+	file << "#define Sub " << sub.id << ";\n";		
 	file << "#define Survivor " << SURVIVOR << ";\n\n";
 	file << "#define SUB_HOME_X " << SUB_START_X << ";\n";
 	file << "#define SUB_HOME_Y " << SUB_START_Y << ";\n";
@@ -587,7 +587,7 @@ void execute_move(int (&current_world)[BOARD_H][BOARD_W], int (&true_world)[BOAR
 
 	// change true representation (old position now visited, new position now sub)
 	true_world[sub.sub_x][sub.sub_y] = VISITED;
-	true_world[new_x][new_y] = SUB;
+	true_world[new_x][new_y] = sub.id;
 }
 
 std_msgs::Int32MultiArray createGrid(int (&true_world)[BOARD_H][BOARD_W])

@@ -37,6 +37,7 @@ ros::ServiceClient setClient;
 int numSurvivors = 0;
 // initialise check to see if submarine has already been spawned (its moved if already spawned)
 bool submarineSpawned = false;
+bool submarine2Spawned = false;
 // home directory and model directory
 std::string homeDir = getenv("HOME");
 std::string modelDir = homeDir + "/catkin_ws/src/3806ict_assignment_3/models/";
@@ -231,7 +232,7 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 				// old position was empty or visited, now it holds the sub, so move/spawn the sub
 				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB2)
 				{
-					if (submarineSpawned)
+					if (submarine2Spawned)
 					{
 						// Move the "Sub"
 						ROS_INFO("Moving sub2 to pos: (%.0f, %.0f)", point.x, point.y);
@@ -245,7 +246,7 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 						spawn = createSpawnRequest(SUB2, point);
 						objectPositions[point] = spawn.request.model_name;
 						spawnClient.call(spawn);
-						submarineSpawned = true;
+						submarine2Spawned = true;
 					}
 				}
 				// Update current grid
