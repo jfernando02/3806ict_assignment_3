@@ -38,16 +38,7 @@ std::string homeDir = getenv("HOME");
 #define PAT_WORLD_DIR homeDir + "/catkin_ws/src/3806ict_assignment_3/pat/world.csp"
 // timeout duration for BFS searches
 #define MAX_BFS_TIME 10
-// cmd to execute PAT using the explore path
-std::string PAT_CMD_EXPLORE = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
-// cmd to execute PAT using the go home path with the BFS engine
-std::string PAT_CMD_GO_HOME_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
-// cmd to execute PAT using the go home path with the DFS engine
-std::string PAT_CMD_GO_HOME_DFS = "mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
-// cmd to execute PAT using the collect survivors path with the BFS engine
-std::string PAT_CMD_COLLECT_SURVIVORS_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_COLLECT_SURVIVORS_DIR + " " + PAT_OUTPUT_DIR;
-// cmd to execute PAT using the collect survivors path with the DFS engine
-std::string PAT_CMD_COLLECT_SURVIVORS_DFS = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_COLLECT_SURVIVORS_DIR + " " + PAT_OUTPUT_DIR;
+
 // represents a single sub, its position, move queue, next move, current path, and number of survivors on board
 class Sub{
 	public:
@@ -59,6 +50,18 @@ class Sub{
 		int OnBoard;
 		int id;
 };
+
+// cmd to execute PAT using the explore path
+std::string PAT_CMD_EXPLORE = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
+// cmd to execute PAT using the go home path with the BFS engine
+std::string PAT_CMD_GO_HOME_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
+// cmd to execute PAT using the go home path with the DFS engine
+std::string PAT_CMD_GO_HOME_DFS = "mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
+// cmd to execute PAT using the collect survivors path with the BFS engine
+std::string PAT_CMD_COLLECT_SURVIVORS_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_COLLECT_SURVIVORS_DIR + " " + PAT_OUTPUT_DIR;
+// cmd to execute PAT using the collect survivors path with the DFS engine
+std::string PAT_CMD_COLLECT_SURVIVORS_DFS = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_COLLECT_SURVIVORS_DIR + " " + PAT_OUTPUT_DIR;
+
 // -- function declarations --
 // takes the message given by the survivor sensors and updates the robot's internal representation (curr_world)
 // with SURVIVOR where they are detected. Returns the number of new/unique survivors that have been detected,
@@ -74,7 +77,7 @@ void update_directions(Sub&sub);
 void generate_world(int (&world)[BOARD_H][BOARD_W]);
 // takes the current robot's representation of the world and generates world.csp so that PAT
 // has access to the most current version of the environment.
-void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub, Sub&sub2);
+void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub);
 // translates the current world from a 2D vector into a 1D vector
 std::vector<int> translate_world(int (&world)[BOARD_H][BOARD_W]);
 // utilises generate_known_world & update_directions to ask PAT for the new moveset from the robot's current
@@ -456,7 +459,7 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub)
 	// write defines
 	file << "#define Visited " << VISITED << ";\n";
 	file << "#define Unvisited " << EMPTY << ";\n";
-	file << "#define Sub " << sub.id << ";\n";		
+	file << "#define Sub " << sub.id << ";\n";			
 	file << "#define Survivor " << SURVIVOR << ";\n\n";
 	file << "#define SUB_HOME_X " << SUB_START_X << ";\n";
 	file << "#define SUB_HOME_Y " << SUB_START_Y << ";\n";
