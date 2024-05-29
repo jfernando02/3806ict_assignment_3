@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/student/catkin_ws/src/3806ict_assignment_3/build/devel/setup.sh
