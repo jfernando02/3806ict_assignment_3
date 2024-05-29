@@ -1,20 +1,20 @@
 =======================================================
-Assertion: UnvisitedMove() reaches noSurvivors
+Assertion: UnvisitedMove() reaches goalAreaChecked
 ********Verification Result********
-The Assertion (UnvisitedMove() reaches noSurvivors) is VALID.
+The Assertion (UnvisitedMove() reaches goalAreaChecked) is VALID.
 The following trace leads to a state where the condition is satisfied.
-<init -> moveDown -> moveDown -> moveRight -> moveRight -> moveRight -> moveRight -> moveDown>
+<init>
 
 ********Verification Setting********
 Admissible Behavior: All
-Search Engine: Shortest Witness Trace using Breadth First Search
+Search Engine: First Witness Trace using Depth First Search
 System Abstraction: False
 
 
 ********Verification Statistics********
-Visited States:788
-Total Transitions:1349
-Time Used:0.225379s
-Estimated Memory Used:10175.808KB
+Visited States:1
+Total Transitions:0
+Time Used:0.0054999s
+Estimated Memory Used:8529.832KB
 
 

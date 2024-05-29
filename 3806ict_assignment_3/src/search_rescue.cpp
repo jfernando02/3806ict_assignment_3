@@ -47,7 +47,6 @@ class Sub{
 		std::queue<std::string> q;
 		std::string next_move;
 		int currentPath;
-		int OnBoard;
 		int id;
 };
 
@@ -111,7 +110,6 @@ int main(int argc, char *argv[])
 
 	int survivors_saved = 0;
 	int survivors_seen = 0;
-	int OnBoard = 0;
 	int current_world[BOARD_H][BOARD_W];
 	// initialise current_world to EMPTY
 	for (int i = 0; i < BOARD_H; i++)
@@ -132,14 +130,12 @@ int main(int argc, char *argv[])
 	sub.sub_x=sub_x;
 	sub.sub_y=sub_y;
 	sub.currentPath=currentPath;
-	sub.OnBoard=OnBoard;
 	sub.id=1;
 
 	Sub sub2;
 	sub2.sub_x=sub_x;
 	sub2.sub_y=sub_y;
 	sub2.currentPath=currentPath;
-	sub2.OnBoard=OnBoard;
 	sub2.id=2;
 
 	std::list<Sub> subs = {sub, sub2};
@@ -198,20 +194,11 @@ int main(int argc, char *argv[])
 }
 
 int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOARD_W], int&survivors_seen){
-		if (SubIsHome(sub.sub_x, sub.sub_y) && sub.OnBoard)
-		{ // sub is at home position and has survivors on board
-			// drop off any survivors
-			survivors_saved += sub.OnBoard;
-			std::cout << "Saved " << sub.OnBoard << " survivors. Total survivors now saved: " << survivors_saved << std::endl;
-			// now have no one on board
-			sub.OnBoard = 0;
-		}
-
 		// there are no moves left to extract
 		if (sub.q.empty())
 		{
 			// robot has collected all survivors (either on board or already safe)
-			if ((survivors_saved + sub.OnBoard) == SURVIVOR_COUNT)
+			if ((survivors_saved) == SURVIVOR_COUNT)
 			{
 				// robot is currently home, which means the mission is complete
 				if (SubIsHome(sub.sub_x, sub.sub_y))
@@ -237,7 +224,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 				// still people left to be saved
 				ROS_INFO("We've run out of moves, but there's still people left to be saved!");
 				// survivor locations are known if robot has seen more than it's saved
-				if (survivors_seen > (survivors_saved + sub.OnBoard))
+				if (survivors_seen > survivors_saved)
 					sub.currentPath = COLLECT_SURVIVORS; // need a strategy to save those people
 				else											// unaware of survivor locations, need to explore
 					sub.currentPath = SURVEY_AREA;
@@ -261,9 +248,9 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 		// planned/intentional, so we are safe to pick them up
 		if (current_world[new_x][new_y] == SURVIVOR)
 		{
-			ROS_INFO("About to pick up a survivor :) Hooray!");
-			sub.OnBoard++;
-			std::cout << "Now have " << sub.OnBoard << " survivors onboard" << std::endl;
+			ROS_INFO("About to identify a point of interest");
+			survivors_saved++;
+			std::cout << "Now have " << survivors_saved << " points of interest located" << std::endl;
 		}
 
 		// updating true and internal representations
@@ -297,7 +284,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 		if (newSurvivorsDetected)
 		{
 			// detected a survivor, change our planning to pick them up ASAP
-			ROS_INFO("New survivor(s) detected!");
+			ROS_INFO("New point of interest(s) detected!");
 			survivors_seen += newSurvivorsDetected;
 			sub.currentPath = COLLECT_SURVIVORS;
 			// regenerate the moveset to collect any detected survivors
@@ -465,7 +452,6 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub)
 	file << "#define SUB_HOME_Y " << SUB_START_Y << ";\n";
 	file << "#define Rows " << BOARD_H << ";\n";
 	file << "#define Cols " << BOARD_W << ";\n";
-	file << "#define maxCapacity " << SUB_CAP << ";\n";
 
 	// write new array representation of world
 	file << "\nvar world[Rows][Cols]:{Visited..Survivor} = [\n";
@@ -485,7 +471,6 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], Sub&sub)
 	file << "// Position of sub\n";
 	file << "var xpos:{0..Rows-1} = " << sub.sub_x << ";\n";
 	file << "var ypos:{0..Cols-1} = " << sub.sub_y << ";\n";
-	file << "var onBoard:{0..maxCapacity} = " << sub.OnBoard << ";\n";
 	file.close();
 }
 
