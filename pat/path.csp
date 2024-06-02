@@ -1,4 +1,4 @@
-﻿/*
+/*
 This csp PAT file is responsible for generating a moveset which will achieve a goal
 based on the robot's current interpretation of its environment. It expects world.csp
 to be updated with the robot's current understanding of hostiles, survivors, and
@@ -49,7 +49,7 @@ var collisionOccured=0;
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos-1][ypos] != Survivor
-MoveUpIfVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited] moveUpV.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveUpIfVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited] moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 MoveUpIfNotVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] != Visited && world[xpos[i]-1][ypos[i]] != 1 && world[xpos[i]-1][ypos[i]] != 2] moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
 // in order to move down:
@@ -60,8 +60,8 @@ MoveUpIfNotVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] != Visited &&
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos+1][ypos] != Survivor
-MoveDownIfVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] == Visited && !collision] moveDownV.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != Visited && world[xpos[i]+1][ypos[i]] != 1 && world[xpos[i]+1][ypos[i]] != 2 ] moveDown.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveDownIfVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] == Visited && !collision] moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != Visited && world[xpos[i]+1][ypos[i]] != 1 && world[xpos[i]+1][ypos[i]] != 2 ] moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
 // in order to move left:
 // need to check if the current position is not at the boundary
@@ -71,8 +71,8 @@ MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != V
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos][ypos-1] != Survivor
-MoveLeftIfVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && !collision] moveLeftV.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1;world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited  && world[xpos[i]][ypos[i]-1] != 1 && world[xpos[i]][ypos[i]-1] != 2] moveLeft.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveLeftIfVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && !collision] moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1;world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited  && world[xpos[i]][ypos[i]-1] != 1 && world[xpos[i]][ypos[i]-1] != 2] moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
 // in order to move right:
 // need to check if the current position is not at the boundary
@@ -82,8 +82,8 @@ MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited 
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos][ypos+1] != Survivor
-MoveRightIfVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] == Visited && !collision] moveRightV.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveRightIfNotVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] != Visited  && world[xpos[i]][ypos[i]+1] != 1 && world[xpos[i]][ypos[i]+1] != 2] moveRight.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveRightIfVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] == Visited && !collision] moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveRightIfNotVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] != Visited  && world[xpos[i]][ypos[i]+1] != 1 && world[xpos[i]][ypos[i]+1] != 2] moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
 // MoveIfNotVisited attempts to move to the next location that has not previously been visited
 MoveIfNotVisited(i) = MoveUpIfNotVisited(i) [] MoveDownIfNotVisited(i) [] MoveLeftIfNotVisited(i) [] MoveRightIfNotVisited(i);
