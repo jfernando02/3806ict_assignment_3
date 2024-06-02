@@ -1,8 +1,0 @@
-prefix=/home/student/catkin_ws/src/3806ict_assignment_3/build/devel
-
-Name: assignment_3
-Description: Description of assignment_3
-Version: 0.0.0
-Cflags: -I/home/student/catkin_ws/src/3806ict_assignment_3/build/devel/include -I/home/student/catkin_ws/src/3806ict_assignment_3/include
-Libs: -L${prefix}/lib -l3806ict_assignment_3
-Requires: gazebo_msgs geometry_msgs message_generation roscpp std_msgs
