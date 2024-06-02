@@ -2,4 +2,4 @@
 #include "path.csp";
 
 // prioritise unvisited positions when searching the goal area
-#assert UnvisitedMove() reaches goalAreaChecked;
+#assert UnvisitedMove() reaches AllAreasExplored;

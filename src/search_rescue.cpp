@@ -48,10 +48,12 @@ class Sub{
 		std::string next_move;
 		int currentPath;
 		int id;
+		int sub_x_start;
+		int sub_y_start;
 };
 
 // cmd to execute PAT using the explore path
-std::string PAT_CMD_EXPLORE = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
+std::string PAT_CMD_EXPLORE = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
 // cmd to execute PAT using the go home path with the BFS engine
 std::string PAT_CMD_GO_HOME_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
 // cmd to execute PAT using the go home path with the DFS engine
@@ -118,24 +120,24 @@ int main(int argc, char *argv[])
 	// current world position is visited
 	current_world[SUB_START_X][SUB_START_Y] = SUB;
 	current_world[SUB_START_X2][SUB_START_Y2] = SUB2;
-	int sub_x = SUB_START_X;
-	int sub_y = SUB_START_Y;
-	int sub_x2 = SUB_START_X2;
-	int sub_y2 = SUB_START_Y2;
 	int currentPath = SURVEY_AREA;
 
 	//Initialise subs
 	Sub sub;
-	sub.sub_x=sub_x;
-	sub.sub_y=sub_y;
+	sub.sub_x=SUB_START_X;
+	sub.sub_y=SUB_START_Y;
 	sub.currentPath=currentPath;
 	sub.id=1;
+	sub.sub_x_start=SUB_START_X;
+	sub.sub_y_start=SUB_START_Y;
 
 	Sub sub2;
-	sub2.sub_x=sub_x2;
-	sub2.sub_y=sub_y2;
+	sub2.sub_x=SUB_START_X2;
+	sub2.sub_y=SUB_START_Y2;
 	sub2.currentPath=currentPath;
 	sub2.id=2;
+	sub2.sub_x_start=SUB_START_X2;
+	sub2.sub_y_start=SUB_START_Y2;
 
 	std::vector<Sub> subs = {sub, sub2};
 
@@ -516,9 +518,20 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs)
 	{
 		for (int j = 0; j < BOARD_W; j++)
 		{
-			if (i == BOARD_H - 1 && j == BOARD_W - 1)
+			bool subPresent = false;
+			for (std::size_t in = 0; in != subs.size(); in++){
+				if (i == subs[in].sub_x && j == subs[in].sub_y && i == BOARD_H - 1 && j == BOARD_W - 1){
+					file << subs[in].id;
+					subPresent = true;
+				}
+				else if (i == subs[in].sub_x && j == subs[in].sub_y){
+					file << subs[in].id << ", ";
+					subPresent = true;
+				}
+			}
+			if (i == BOARD_H - 1 && j == BOARD_W - 1 && !subPresent)
 				file << world[i][j];
-			else
+			else if (!subPresent)
 				file << world[i][j] << ", ";
 		}
 		file << "\n";
@@ -544,7 +557,29 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs)
 
 	file << "// Position of subs\n";
 	file << xpos_result;
-	file << ypos_result;
+	file << ypos_result << "\n";
+
+	std::string all_xposI;
+	std::string all_yposI;
+    for (std::size_t i = 0; i != subs.size(); i++){
+		all_xposI.append(std::to_string(subs[i].sub_x_start));
+		all_yposI.append(std::to_string(subs[i].sub_y_start));
+		if (i != subs.size()-1) {
+            all_xposI.append(", ");
+			all_yposI.append(", ");
+        }
+	}
+	std::stringstream ss3;
+    ss3 << "var xposI[" << subs.size() << "]:{0..Rows-1} = [" << all_xposI << "];\n";
+    std::string xpos_resultI = ss3.str();
+	std::stringstream ss4;
+	ss4 << "var yposI[" << subs.size() << "]:{0..Cols-1} = [" << all_yposI << "];\n";
+    std::string ypos_resultI = ss4.str();
+
+	file << "// Original position of subs\n";
+	file << xpos_resultI;
+	file << ypos_resultI;
+
 	file.close();
 }
 
