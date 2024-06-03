@@ -14,10 +14,8 @@
 #include <utility>
 #include <sstream>
 
-#define GAZEBO_SIMULATION_RATE 3 // how many moves per second will that will be processed/simulated
+#define GAZEBO_SIMULATION_RATE 0.05 // how many moves per second will that will be processed/simulated
 
-// boolean expects sub_x and sub_y to determine if sub is at home position
-#define SubIsHome(sub_x, sub_y) (sub_x == sub_x && sub_y == sub_y)
 // path names, used to keep track of which path is currently being executed
 #define SURVEY_AREA 0
 #define COLLECT_SURVIVORS 1
@@ -48,10 +46,26 @@ class Sub{
 		std::string next_move;
 		int currentPath;
 		int id;
+		int sub_x_start;
+		int sub_y_start;
+		void set_sub_x(int x){
+			if(x<BOARD_W && x>-1){
+				sub_x=x;
+			}
+		}
+		void set_sub_y(int y){
+			if(y<BOARD_H && y>-1){
+				sub_y=y;
+			}
+		}
+};
+
+bool SubIsHome(Sub&sub){
+	return (sub.sub_x==sub.sub_x_start&&sub.sub_y==sub.sub_y_start);
 };
 
 // cmd to execute PAT using the explore path
-std::string PAT_CMD_EXPLORE = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
+std::string PAT_CMD_EXPLORE = "mono " + PAT_EXE_DIR + " " + PAT_PATH_CSP_EXPLORE_DIR + " " + PAT_OUTPUT_DIR;
 // cmd to execute PAT using the go home path with the BFS engine
 std::string PAT_CMD_GO_HOME_BFS = "timeout " + std::to_string(MAX_BFS_TIME) + "s mono " + PAT_EXE_DIR + " -engine 1 " + PAT_PATH_CSP_HOME_DIR + " " + PAT_OUTPUT_DIR;
 // cmd to execute PAT using the go home path with the DFS engine
@@ -76,7 +90,7 @@ void update_directions(std::queue<std::string>&q);
 void generate_world(int (&world)[BOARD_H][BOARD_W]);
 // takes the current robot's representation of the world and generates world.csp so that PAT
 // has access to the most current version of the environment.
-void generate_known_world(int (&world)[BOARD_H][BOARD_W]);
+void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs, Sub&sub);
 // translates the current world from a 2D vector into a 1D vector
 std::vector<int> translate_world(int (&world)[BOARD_H][BOARD_W]);
 // utilises generate_known_world & update_directions to ask PAT for the new moveset from the robot's current
@@ -98,7 +112,7 @@ assignment_3::Sensor survivor_srv;
 std_msgs::Int32MultiArray true_grid;
 int true_world[BOARD_H][BOARD_W];
 
-int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOARD_W], int&survivors_seen, std::vector<Sub>&subs, std::queue<std::string>&q);
+void perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOARD_W], int&survivors_seen, std::vector<Sub>&subs, std::queue<std::string>&q);
 
 int main(int argc, char *argv[])
 {
@@ -116,28 +130,37 @@ int main(int argc, char *argv[])
 		for (int j = 0; j < BOARD_W; j++)
 			current_world[i][j] = EMPTY;
 	// current world position is visited
-	current_world[SUB_START_X][SUB_START_Y] = SUB;
+	current_world[SUB_START_X][SUB_START_Y] = SUB1;
 	current_world[SUB_START_X2][SUB_START_Y2] = SUB2;
-	int sub_x = SUB_START_X;
-	int sub_y = SUB_START_Y;
-	int sub_x2 = SUB_START_X2;
-	int sub_y2 = SUB_START_Y2;
+	current_world[SUB_START_X3][SUB_START_Y3] = SUB3;
 	int currentPath = SURVEY_AREA;
 
 	//Initialise subs
 	Sub sub;
-	sub.sub_x=sub_x;
-	sub.sub_y=sub_y;
+	sub.set_sub_x(SUB_START_X);
+	sub.set_sub_y(SUB_START_Y);
 	sub.currentPath=currentPath;
 	sub.id=1;
+	sub.sub_x_start=SUB_START_X;
+	sub.sub_y_start=SUB_START_Y;
 
 	Sub sub2;
-	sub2.sub_x=sub_x2;
-	sub2.sub_y=sub_y2;
+	sub2.set_sub_x(SUB_START_X2);
+	sub2.set_sub_y(SUB_START_Y2);
 	sub2.currentPath=currentPath;
 	sub2.id=2;
+	sub2.sub_x_start=SUB_START_X2;
+	sub2.sub_y_start=SUB_START_Y2;
 
-	std::vector<Sub> subs = {sub, sub2};
+	Sub sub3;
+	sub3.set_sub_x(SUB_START_X3);
+	sub3.set_sub_y(SUB_START_Y3);
+	sub3.currentPath=currentPath;
+	sub3.id=3;
+	sub3.sub_x_start=SUB_START_X3;
+	sub3.sub_y_start=SUB_START_Y3;
+
+	std::vector<Sub> subs = {sub, sub2, sub3};
 
 	//Initialise shared moveset
 	std::queue<std::string> q;
@@ -176,33 +199,20 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	// update our current world with any detected survivors
-	for (Sub& submarine : subs){
-		int newSurvivorsDetected = detect_survivors(survivor_srv, current_world, submarine); 
+	// initialise the rate which controls the looping speed
+	ros::Rate rate(GAZEBO_SIMULATION_RATE);
+
+	for(Sub&sub:subs){
+		int newSurvivorsDetected = detect_survivors(survivor_srv, current_world, sub);
+
 		if (newSurvivorsDetected)
 		{
 			// detected a survivor, change our planning to pick them up ASAP
 			ROS_INFO("New point of interest(s) detected!");
 			survivors_seen += newSurvivorsDetected;
-			submarine.currentPath = COLLECT_SURVIVORS; // attempt to pick up the any survivors around us if space permits
-			for (int i = 0; i < BOARD_H; i++)
-		{
-			for (int j = 0; j < BOARD_W; j++)
-			{
-				if (current_world[i][j] != VISITED)
-					std::cout << " ";
-				std::cout << current_world[i][j] << " ";
-			}
-			std::cout << std::endl;
-	}
-			
+			sub.currentPath = COLLECT_SURVIVORS;
 		}
-		// regenerate the moveset with the current path
-		regenerate_moves(current_world, submarine, subs, q);
 	}
-
-	// initialise the rate which controls the looping speed
-	ros::Rate rate(GAZEBO_SIMULATION_RATE);
 
 	// continue looping while ros is ready to process commands
 	while (ros::ok())
@@ -228,7 +238,7 @@ int main(int argc, char *argv[])
 	}
 }
 
-int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOARD_W], int&survivors_seen, std::vector<Sub>&subs, std::queue<std::string>&q){
+void perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOARD_W], int&survivors_seen, std::vector<Sub>&subs, std::queue<std::string>&q){
 		// there are no moves left to extract
 		if (q.empty())
 		{
@@ -236,7 +246,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 			if ((survivors_saved) == SURVIVOR_COUNT)
 			{
 				// robot is currently home, which means the mission is complete
-				if (SubIsHome(sub.sub_x, sub.sub_y))
+				if (SubIsHome(sub))
 				{
 					ROS_INFO("Mission successful!\nFinal internal representation of environment:");
 					for (int i = 0; i < BOARD_H; i++)
@@ -250,7 +260,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 						std::cout << std::endl;
 						std::cout << std::endl;
 					}
-					return EXIT_SUCCESS;
+			
 				}
 				else // saved all survivors, but not home yet
 					sub.currentPath=GO_HOME;
@@ -258,7 +268,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 			else
 			{
 				// still people left to be saved
-				ROS_INFO("We've run out of moves, but there's still people left to be saved!");
+				ROS_INFO("We've run out of moves, but there's still points of interest left to be located!");
 				// survivor locations are known if robot has seen more than it's saved
 				if (survivors_seen > survivors_saved)
 					sub.currentPath = COLLECT_SURVIVORS; // need a strategy to save those people
@@ -298,7 +308,7 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 		execute_move(current_world, true_world, sub, new_coords);
 
 
-			for (int i = 0; i < BOARD_H; i++)
+		for (int i = 0; i < BOARD_H; i++)
 		{
 		for (int j = 0; j < BOARD_W; j++)
 		{
@@ -319,18 +329,16 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 		if (!gridClient.call(grid_srv))
 		{
 			ROS_ERROR("Failed to call update_grid service");
-			return EXIT_FAILURE;
 		}
 
 		// now we are at the new position in gazebo, we can update our own positions
-		sub.sub_x = new_x;
-		sub.sub_y = new_y;
-
+		sub.set_sub_x(new_x);
+		sub.set_sub_y(new_y);
+		survivor_srv.request.subID = sub.id;
 		// call the sensors and extract information
 		if (!survivorSensorClient.call(survivor_srv))
 		{
 			ROS_ERROR("Failed to call sensor services");
-			return EXIT_FAILURE;
 		}
 
 		int newSurvivorsDetected = detect_survivors(survivor_srv, current_world, sub);
@@ -344,7 +352,6 @@ int perform_move(Sub&sub, int&survivors_saved, int(&current_world)[BOARD_H][BOAR
 			// regenerate the moveset to collect any detected survivors
 			regenerate_moves(current_world, sub, subs, q);
 		}
-		return -1;
 	}
 
 int detect_survivors(assignment_3::Sensor &survivor_srv, int (&curr_world)[BOARD_H][BOARD_W], Sub&sub)
@@ -463,8 +470,9 @@ void generate_world(int (&world)[BOARD_H][BOARD_W])
 			world[i][j] = EMPTY;
 
 	// place sub in home position denoted by SUB_START_X and SUB_START_Y (origin)
-	world[SUB_START_X][SUB_START_Y] = SUB;
+	world[SUB_START_X][SUB_START_Y] = SUB1;
 	world[SUB_START_X2][SUB_START_Y2] = SUB2;
+	world[SUB_START_X3][SUB_START_Y3] = SUB3;
 
 	// random number generators for random row/column
 	std::random_device rd;
@@ -486,7 +494,7 @@ void generate_world(int (&world)[BOARD_H][BOARD_W])
 	}
 }
 
-void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs)
+void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs, Sub&sub)
 {
 	// open world.csp file to write to
 	std::ofstream file(PAT_WORLD_DIR);
@@ -500,15 +508,13 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs)
 	// write defines
 	file << "#define Visited " << VISITED << ";\n";
 	file << "#define Unvisited " << EMPTY << ";\n";
-	file << "#define Sub " << subs[0].id << ";\n";	
-	file << "#define Sub2 " << subs[1].id << ";\n";	
-	file << "#define SUB_HOME_X " << SUB_START_X << ";\n";
-	file << "#define SUB_HOME_Y " << SUB_START_Y << ";\n";
-	file << "#define SUB_HOME_X2 " << SUB_START_X2 << ";\n";
-	file << "#define SUB_HOME_Y2 " << SUB_START_Y2 << ";\n";		
+	for(Sub&submarine:subs){
+		file << "#define Sub" << submarine.id << " " << submarine.id << ";\n";
+	}		
 	file << "#define Survivor " << SURVIVOR << ";\n\n";
 	file << "#define Rows " << BOARD_H << ";\n";
 	file << "#define Cols " << BOARD_W << ";\n";
+	file << "var turnOrder = " << sub.id-1 << ";\n";
 
 	// write new array representation of world
 	file << "\nvar world[Rows][Cols]:{Visited..Survivor} = [\n";
@@ -544,7 +550,29 @@ void generate_known_world(int (&world)[BOARD_H][BOARD_W], std::vector<Sub>&subs)
 
 	file << "// Position of subs\n";
 	file << xpos_result;
-	file << ypos_result;
+	file << ypos_result << "\n";
+
+	std::string all_xposI;
+	std::string all_yposI;
+    for (std::size_t i = 0; i != subs.size(); i++){
+		all_xposI.append(std::to_string(subs[i].sub_x_start));
+		all_yposI.append(std::to_string(subs[i].sub_y_start));
+		if (i != subs.size()-1) {
+            all_xposI.append(", ");
+			all_yposI.append(", ");
+        }
+	}
+	std::stringstream ss3;
+    ss3 << "var xposI[" << subs.size() << "]:{0..Rows-1} = [" << all_xposI << "];\n";
+    std::string xpos_resultI = ss3.str();
+	std::stringstream ss4;
+	ss4 << "var yposI[" << subs.size() << "]:{0..Cols-1} = [" << all_yposI << "];\n";
+    std::string ypos_resultI = ss4.str();
+
+	file << "// Original position of subs\n";
+	file << xpos_resultI;
+	file << ypos_resultI;
+
 	file.close();
 }
 
@@ -560,7 +588,7 @@ std::vector<int> translate_world(int (&world)[BOARD_H][BOARD_W])
 void regenerate_moves(int (&current_world)[BOARD_H][BOARD_W], Sub&sub, std::vector<Sub>&subs, std::queue<std::string>&q)
 {
 	// generate world.csp so path.csp has access to current environment
-	generate_known_world(current_world, subs);
+	generate_known_world(current_world, subs, sub);
 
 	// get output from pat (generate pat_output.txt)
 	if (sub.currentPath == SURVEY_AREA)
@@ -615,7 +643,7 @@ void regenerate_moves(int (&current_world)[BOARD_H][BOARD_W], Sub&sub, std::vect
 	{
 		ROS_INFO("Calculating a path to go home");
 		// collect status code returned from the system call
-		int status = std::system(PAT_CMD_GO_HOME_BFS.c_str());
+		int status = std::system(PAT_CMD_GO_HOME_DFS.c_str());
 		// fatal error if status call is not positive integer
 		if (status < 0)
 		{

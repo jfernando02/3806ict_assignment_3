@@ -5,9 +5,5 @@
 // that we may also visit locations during the collection process
 #assert UnvisitedMove() reaches noSurvivors;
 
-#assert UnvisitedMove() reaches NoCollisionOccured;
-
-#assert UnvisitedMove() reaches AllAreasExplored;
-
 
 

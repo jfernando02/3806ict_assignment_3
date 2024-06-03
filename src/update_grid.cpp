@@ -19,7 +19,9 @@
 #define GRID_WIDTH 1.0
 
 // ROS service client so sensors have access to bot position
-ros::ServiceClient bot_location;
+ros::ServiceClient bot_location1;
+ros::ServiceClient bot_location2;
+ros::ServiceClient bot_location3;
 gazebo_msgs::GetModelState srv;
 
 // current grid is always compared with new grid when updating gazebo to move/delete models
@@ -36,8 +38,9 @@ ros::ServiceClient setClient;
 // initialise number of spawned survivors
 int numSurvivors = 0;
 // initialise check to see if submarine has already been spawned (its moved if already spawned)
-bool submarineSpawned = false;
+bool submarine1Spawned = false;
 bool submarine2Spawned = false;
+bool submarine3Spawned = false;
 // home directory and model directory
 std::string homeDir = getenv("HOME");
 std::string modelDir = homeDir + "/catkin_ws/src/3806ict_assignment_3/models/";
@@ -77,9 +80,11 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 	// creating a client to the get_model_state service, so that the sensors have access to the bot's
 	// x, y coordinates at all times for emulation purposes (to try simulate actual sensors)
-	bot_location = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
+	bot_location1 = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state","submarine1");
+	bot_location2 = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state","submarine2");
+	bot_location3 = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state","submarine3");
 	// pretend we're a submarine :)
-	srv.request.model_name = "submarine";
+	srv.request.model_name = "submarine1";
 
 	// Initialize current grid to all empty squares
 	for (int i = 0; i < BOARD_H; ++i)
@@ -125,10 +130,10 @@ gazebo_msgs::SpawnModel createSpawnRequest(int modelType, geometry_msgs::Point p
 		// create path to sdf model in repository
 		modelPath = modelDir + "bowl/model.sdf";
 	}
-	else if (modelType == SUB)
+	else if (modelType == SUB1)
 	{
 		// the turtlebot burger from turtlebot_sim package is used to model the submarine
-		spawn.request.model_name = "submarine";
+		spawn.request.model_name = "submarine1";
 		// create path to sdf model in repository
 		modelPath = modelDir + "turtlebot3_burger/model.sdf";
 	}
@@ -136,6 +141,13 @@ gazebo_msgs::SpawnModel createSpawnRequest(int modelType, geometry_msgs::Point p
 	{
 		// the turtlebot burger from turtlebot_sim package is used to model the submarine
 		spawn.request.model_name = "submarine2";
+		// create path to sdf model in repository
+		modelPath = modelDir + "turtlebot3_burger/model.sdf";
+	}
+	else if (modelType == SUB3)
+	{
+		// the turtlebot burger from turtlebot_sim package is used to model the submarine
+		spawn.request.model_name = "submarine3";
 		// create path to sdf model in repository
 		modelPath = modelDir + "turtlebot3_burger/model.sdf";
 	}
@@ -184,14 +196,14 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 				}
 				// was a survivor, now the sub. must delete the survivor and replace
 				// with the sub
-				if (oldIndex == SURVIVOR && newIndex == SUB)
+				if (oldIndex == SURVIVOR && newIndex == SUB1)
 				{
 					// Delete the "Survivor"
 					del.request.model_name = objectPositions[point];
 					deleteClient.call(del);
 					objectPositions.erase(point);
 					// Move the "Sub"
-					set.request.model_state.model_name = "submarine";
+					set.request.model_state.model_name = "submarine1";
 					set.request.model_state.pose.position = point;
 					setClient.call(set);
 				}
@@ -209,24 +221,35 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 					set.request.model_state.pose.position = point;
 					setClient.call(set);
 				}
-				// old position was empty or visited, now it holds the sub, so move/spawn the sub
-				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB)
+				if (oldIndex == SURVIVOR && newIndex == SUB3)
 				{
-					if (submarineSpawned)
+					// Delete the "Survivor"
+					del.request.model_name = objectPositions[point];
+					deleteClient.call(del);
+					objectPositions.erase(point);
+					// Move the "Sub"
+					set.request.model_state.model_name = "submarine3";
+					set.request.model_state.pose.position = point;
+					setClient.call(set);
+				}
+				// old position was empty or visited, now it holds the sub, so move/spawn the sub
+				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB1)
+				{
+					if (submarine1Spawned)
 					{
 						// Move the "Sub"
-						ROS_INFO("Moving sub to pos: (%.0f, %.0f)", point.x, point.y);
-						set.request.model_state.model_name = "submarine";
+						ROS_INFO("Moving sub1 to pos: (%.0f, %.0f)", point.x, point.y);
+						set.request.model_state.model_name = "submarine1";
 						set.request.model_state.pose.position = point;
 						setClient.call(set);
 					}
 					else
 					{
 						// Spawn the "Sub"
-						spawn = createSpawnRequest(SUB, point);
+						spawn = createSpawnRequest(SUB1, point);
 						objectPositions[point] = spawn.request.model_name;
 						spawnClient.call(spawn);
-						submarineSpawned = true;
+						submarine1Spawned = true;
 					}
 				}
 				// old position was empty or visited, now it holds the sub, so move/spawn the sub
@@ -249,6 +272,25 @@ bool updateGrid(assignment_3::UpdateGrid::Request &req, assignment_3::UpdateGrid
 						submarine2Spawned = true;
 					}
 				}
+				if ((oldIndex == EMPTY || oldIndex == VISITED) && newIndex == SUB3)
+				{
+					if (submarine3Spawned)
+					{
+						// Move the "Sub"
+						ROS_INFO("Moving sub3 to pos: (%.0f, %.0f)", point.x, point.y);
+						set.request.model_state.model_name = "submarine3";
+						set.request.model_state.pose.position = point;
+						setClient.call(set);
+					}
+					else
+					{
+						// Spawn the "Sub3"
+						spawn = createSpawnRequest(SUB3, point);
+						objectPositions[point] = spawn.request.model_name;
+						spawnClient.call(spawn);
+						submarine3Spawned = true;
+					}
+				}
 				// Update current grid
 				currentGrid[i][j] = newIndex;
 			}
@@ -269,10 +311,26 @@ bool survivorSensor(assignment_3::Sensor::Request &req, assignment_3::Sensor::Re
 	res.objectDetected = false;
 
 	// get current x and y position from gazebo response
-	if (!bot_location.call(srv))
-	{
-		ROS_WARN("Failed to call ROS GetModelState service to get bot location");
-		return false;
+	if(req.subID==1){
+		if (!bot_location1.call(srv))
+		{
+			ROS_WARN("Failed to call ROS GetModelState service to get bot location");
+			return false;
+		}
+	}
+	else if(req.subID==2){
+		if (!bot_location2.call(srv))
+		{
+			ROS_WARN("Failed to call ROS GetModelState service to get bot location");
+			return false;
+		}
+	}
+	else if(req.subID==3){
+		if (!bot_location3.call(srv))
+		{
+			ROS_WARN("Failed to call ROS GetModelState service to get bot location");
+			return false;
+		}
 	}
 
 	// extract x and y from the response. Round as they are given as doubles, we want

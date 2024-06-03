@@ -1,32 +1,26 @@
-﻿#define Visited -1;
-
+#define Visited -1;
 #define Unvisited 0;
-#define Sub 1;
+#define Sub1 1;
 #define Sub2 2;
-#define SUB_HOME_X 0;
-#define SUB_HOME_Y 0;
-#define SUB_HOME_X2 0;
-#define SUB_HOME_Y2 1;
-#define Survivor 3;
+#define Sub3 3;
+#define Survivor 4;
 
-#define Rows 4;
-#define Cols 4;
+#define Rows 5;
+#define Cols 5;
+var turnOrder = 0;
 
 var world[Rows][Cols]:{Visited..Survivor} = [
-1, 2, 0, 0, 
-0, 0, 0, 0, 
-3, 3, 0, 0, 
-0, 0, 0, 0
+-1, -1, 3, 0, 0, 
+-1, -1, -1, -1, 0, 
+-1, -1, -1, 2, 1, 
+-1, -1, -1, -1, -1, 
+-1, -1, -1, -1, 0
 ];
 
-
 // Position of subs
-var xposI[2]:{0..Rows-1} = [0, 0];
-var yposI[2]:{0..Cols-1} = [0, 1];
+var xpos[3]:{0..Rows-1} = [2, 2, 0];
+var ypos[3]:{0..Cols-1} = [4, 3, 2];
 
-
-// Position of subs
-var xpos[2]:{0..Rows-1} = [0, 0];
-var ypos[2]:{0..Cols-1} = [0, 1];
-
-
+// Original position of subs
+var xposI[3]:{0..Rows-1} = [0, 0, 0];
+var yposI[3]:{0..Cols-1} = [0, 1, 2];

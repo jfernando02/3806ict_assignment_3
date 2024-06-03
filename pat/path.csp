@@ -3,44 +3,43 @@ This csp PAT file is responsible for generating a moveset which will achieve a g
 based on the robot's current interpretation of its environment. It expects world.csp
 to be updated with the robot's current understanding of hostiles, survivors, and
 visited squares.
-
+ 
 It defines two types of moves for every direction (up, left, right, down). These
 are visited/unvisited variants, respectively intending to prioritise visiting
 already visited locations or unvisited locations. When moving to a new location,
 the location is marked as visited. If that location was a survivor, they are
 "picked up" by incrementing a variable onBoard.
-
+ 
 The robot's position is mainted by xpos and ypos.
-
+ 
 It also defines three core goals. These are:
 home:
 This goal simply attempts to bring the robot back to its home position, as given
 by SUB_HOME_X and SUB_HOME_Y provided in world.csp.
-
+ 
 goalAreaChecked:
 This goal attempts to mark all locations as visited, and to return to the home position
 during the process.
-
+ 
 noSurvivors:
 This goal ensures that all locations are void of survivors if there are remaining spaces
 on the bot (onBoard != maxCapacity). In the case that the bot has reached maximum carrying
 capacity, survivors are left on the board. In both cases, there is the additional goal of
 returning the robot back home.
 */
-
+ 
 // include the expected world.csp file which defines the current environment & parameters
 #include "world.csp";
-#define subCount 2;
-#define collision (xpos[0]==xpos[1]&&ypos[0]==ypos[1]);
-var turnOrder=0;
+#define subCount 3;
+#define collision ((xpos[0]==xpos[1]&&ypos[0]==ypos[1])||(xpos[0]==xpos[2]&&ypos[0]==ypos[2])||(xpos[1]==xpos[2]&&ypos[1]==ypos[2]));
 var collisionOccured=0;
-
+ 
 // primitive tasks for overall move task
 // actions if conditions satisfied:
 	// move the position of the sub
 	// mark the new position as visited
 	// pick up survivor if there was one (onBoard++)
-
+ 
 // in order to move up:
 // need to check if the current position is not at the boundary
 	// xpos != upper boundry, which is first row in world (0)
@@ -49,9 +48,17 @@ var collisionOccured=0;
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos-1][ypos] != Survivor
-MoveUpIfVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited] moveUpV.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveUpIfNotVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] != Visited && world[xpos[i]-1][ypos[i]] != 1 && world[xpos[i]-1][ypos[i]] != 2] moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveUpIfVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited && collisionOccured!=1] moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveUpIfNotVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] != Visited && collisionOccured!=1] moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
+MoveUpIfVisitedWeightedByUnvisited(i,j)=[xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited && collisionOccured!=1 && 
+((ypos[i]+j<Cols&&world[xpos[i]-1][ypos[i]+j] == Unvisited)||(xpos[i]-1+j<Rows&&world[xpos[i]-1+j][ypos[i]] == Visited)||(ypos[i]-j>-1&&world[xpos[i]-1][ypos[i]-j] == Unvisited)||(xpos[i]-1-j>-1&&world[xpos[i]-1-j][ypos[i]] == Unvisited))]
+moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+
+MoveUpIfVisitedWeightedByHome(i,j)=[xpos[i] != 0 && world[xpos[i]-1][ypos[i]] == Visited && collisionOccured!=1 && 
+((ypos[i]+j<Cols&&ypos[i]+j == yposI[i]&&xpos[i]-1==xposI[i])||(xpos[i]-1+j<Rows&&xpos[i]-1+j==xposI[i]&&ypos[i] == yposI[i])||(ypos[i]-j>-1&&xpos[i]-1==xposI[i]&&ypos[i]-j == yposI[i])||(xpos[i]-1-j>-1&&xpos[i]-1-j==xposI[i]&&ypos[i] == yposI[i]))]
+moveUp{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+ 
 // in order to move down:
 // need to check if the current position is not at the boundary
 	// xpos != lower boundry, which is last row in world (Rows - 1)
@@ -60,9 +67,17 @@ MoveUpIfNotVisited(i) = [xpos[i] != 0 && world[xpos[i]-1][ypos[i]] != Visited &&
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos+1][ypos] != Survivor
-MoveDownIfVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] == Visited && !collision] moveDownV.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != Visited && world[xpos[i]+1][ypos[i]] != 1 && world[xpos[i]+1][ypos[i]] != 2 ] moveDown.i{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveDownIfVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] == Visited && collisionOccured!=1] moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != Visited && collisionOccured!=1] moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
 
+MoveDownIfVisitedWeightedByUnvisited(i,j)=[xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] == Visited && collisionOccured!=1 && 
+((ypos[i]+j<Cols&&world[xpos[i]+1][ypos[i]+j] == Unvisited)||(xpos[i]+1+j<Rows&&world[xpos[i]+1+j][ypos[i]] == Visited)||(ypos[i]-j>-1&&world[xpos[i]+1][ypos[i]-j] == Unvisited)||(xpos[i]+1-j>-1&&world[xpos[i]+1-j][ypos[i]] == Unvisited))]
+moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+
+MoveDownIfVisitedWeightedByHome(i,j)=[xpos[i] != 0 && world[xpos[i]+1][ypos[i]] == Visited && collisionOccured!=1 && 
+((ypos[i]+j<Cols&&ypos[i]+j == yposI[i]&&xpos[i]+1==xposI[i])||(xpos[i]+1+j<Rows&&xpos[i]+1+j==xposI[i]&&ypos[i] == yposI[i])||(ypos[i]-j>-1&&xpos[i]+1==xposI[i]&&ypos[i]-j == yposI[i])||(xpos[i]+1-j>-1&&xpos[i]+1-j==xposI[i]&&ypos[i] == yposI[i]))]
+moveDown{world[xpos[i]][ypos[i]] = Visited; xpos[i] = xpos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+ 
 // in order to move left:
 // need to check if the current position is not at the boundary
 	// ypos != left boundry, which is first column in world (0)
@@ -71,9 +86,15 @@ MoveDownIfNotVisited(i) = [xpos[i] != Rows - 1 && world[xpos[i]+1][ypos[i]] != V
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos][ypos-1] != Survivor
-MoveLeftIfVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && !collision] moveLeftV.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1;world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited  && world[xpos[i]][ypos[i]-1] != 1 && world[xpos[i]][ypos[i]-1] != 2] moveLeft.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-
+MoveLeftIfVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && collisionOccured!=1] moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1;world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited  && collisionOccured!=1] moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveLeftIfVisitedWeightedByUnvisited(i,j)=[ypos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && collisionOccured!=1 && 
+((ypos[i]-1+j<Cols&&world[xpos[i]][ypos[i]-1+j] == Unvisited)||(xpos[i]+j<Rows&&world[xpos[i]+j][ypos[i]-1] == Visited)||(ypos[i]-1-j>-1&&world[xpos[i]][ypos[i]-1-j] == Unvisited)||(xpos[i]-j>-1&&world[xpos[i]-j][ypos[i]-1] == Unvisited))]
+moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveLeftIfVisitedWeightedByHome(i,j)=[xpos[i] != 0 && world[xpos[i]][ypos[i]-1] == Visited && collisionOccured!=1 && 
+((ypos[i]-1+j<Cols&&ypos[i]-1+j == yposI[i]&&xpos[i]==xposI[i])||(xpos[i]+j<Rows&&xpos[i]+j==xposI[i]&&ypos[i]-1 == yposI[i])||(ypos[i]-j-1>-1&&xpos[i]==xposI[i]&&ypos[i]-j-1 == yposI[i])||(xpos[i]-j>-1&&xpos[i]-j==xposI[i]&&ypos[i]-1 == yposI[i]-1))]
+moveLeft{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] - 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+ 
 // in order to move right:
 // need to check if the current position is not at the boundary
 	// ypos != right boundry, which is last column in world (Cols - 1)
@@ -82,25 +103,33 @@ MoveLeftIfNotVisited(i) = [ypos[i] != 0 && world[xpos[i]][ypos[i]-1] != Visited 
 // need to check if sub is at max capacity ( && (onBoard != maxCapacity))
 	// if at max capacity, next position should not include a survivor, as we cannot pick them up
 	// || world[xpos][ypos+1] != Survivor
-MoveRightIfVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] == Visited && !collision] moveRightV.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-MoveRightIfNotVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] != Visited  && world[xpos[i]][ypos[i]+1] != 1 && world[xpos[i]][ypos[i]+1] != 2] moveRight.i{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
-
+MoveRightIfVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] == Visited && collisionOccured!=1] moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveRightIfNotVisited(i) = [ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] != Visited  && collisionOccured!=1] moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveRightIfVisitedWeightedByUnvisited(i,j)=[ypos[i] != Cols - 1 && world[xpos[i]][ypos[i]+1] == Visited && collisionOccured!=1 && 
+((ypos[i]+1+j<Cols&&world[xpos[i]][ypos[i]+1+j] == Unvisited)||(xpos[i]+j<Rows&&world[xpos[i]+j][ypos[i]+1] == Visited)||(ypos[i]+1-j>-1&&world[xpos[i]][ypos[i]+1-j] == Unvisited)||(xpos[i]-j>-1&&world[xpos[i]-j][ypos[i]+1] == Unvisited))]
+moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+MoveRightIfVisitedWeightedByHome(i,j)=[xpos[i] != 0 && world[xpos[i]][ypos[i]+1] == Visited && collisionOccured!=1 && 
+((ypos[i]+1+j<Cols&&ypos[i]+1+j == yposI[i]&&xpos[i]==xposI[i])||(xpos[i]+j<Rows&&xpos[i]+j==xposI[i]&&ypos[i]+1 == yposI[i])||(ypos[i]-j+1>-1&&xpos[i]==xposI[i]&&ypos[i]-j+1 == yposI[i])||(xpos[i]-j>-1&&xpos[i]-j==xposI[i]&&ypos[i]+1 == yposI[i]+1))]
+moveRight{world[xpos[i]][ypos[i]] = Visited; ypos[i] = ypos[i] + 1; world[xpos[i]][ypos[i]] = i+1; turnOrder=turnOrder+1; if(collision){collisionOccured=1;}else{collisionOccured=collisionOccured;}} -> Skip;
+ 
 // MoveIfNotVisited attempts to move to the next location that has not previously been visited
-MoveIfNotVisited(i) = MoveUpIfNotVisited(i) [] MoveDownIfNotVisited(i) [] MoveLeftIfNotVisited(i) [] MoveRightIfNotVisited(i);
+MoveIfNotVisited(i) = MoveRightIfNotVisited(i) [] MoveLeftIfNotVisited(i) [] MoveDownIfNotVisited(i) [] MoveUpIfNotVisited(i);
 // MoveIfVisited attempts to move to the next location that has previously been visited
-MoveIfVisited(i) = MoveUpIfVisited(i) [] MoveDownIfVisited(i) [] MoveLeftIfVisited(i) [] MoveRightIfVisited(i);
+MoveIfVisited(i) = MoveUpIfVisited(i) [] MoveLeftIfVisited(i) [] MoveRightIfVisited(i) [] MoveDownIfVisited(i);
+//Attempts to move to the location that is closest to an unvisiited tile
+MoveIfVisitedWeightedByUnvisited(i,j) = MoveRightIfVisitedWeightedByUnvisited(i,j) [] MoveLeftIfVisitedWeightedByUnvisited(i,j) [] MoveDownIfVisitedWeightedByUnvisited(i,j) [] MoveUpIfVisitedWeightedByUnvisited(i,j);
+//Attempts to move to the location that is closest to an home tile
+MoveIfVisitedWeightedByHome(i,j) = MoveUpIfVisitedWeightedByHome(i,j) [] MoveLeftIfVisitedWeightedByHome(i,j) [] MoveRightIfVisitedWeightedByHome(i,j) [] MoveDownIfVisitedWeightedByHome(i,j);
 // UnVisitedMove priortises MoveIfNotVisited moves, but uses MoveIfVisited when necessary.
-UnvisitedMove() = (MoveIfVisited(turnOrder%subCount) [] MoveIfNotVisited(turnOrder%subCount));UnvisitedMove();
+UnvisitedMove() = (MoveIfVisited(turnOrder%subCount) [] MoveIfNotVisited(turnOrder%subCount) [] MoveIfVisitedWeightedByUnvisited(turnOrder%subCount,1) [] MoveIfVisitedWeightedByUnvisited(turnOrder%subCount,2) []MoveIfVisitedWeightedByUnvisited(turnOrder%subCount,3));UnvisitedMove();
 // VisitedMove priortises MoveIfVisited moves, but uses MoveIfNotVisited when necessary.
-VisitedMove() = (MoveIfNotVisited(turnOrder%subCount) [] MoveIfVisited(turnOrder%subCount));VisitedMove();
-
+VisitedMove() = (MoveIfVisitedWeightedByHome(turnOrder%subCount,0) []MoveIfVisitedWeightedByHome(turnOrder%subCount,1) [] MoveIfVisitedWeightedByHome(turnOrder%subCount,2) []MoveIfVisitedWeightedByHome(turnOrder%subCount,3) [] MoveIfVisitedWeightedByHome(turnOrder%subCount,4)[]MoveIfVisited(turnOrder%subCount));VisitedMove();
+ 
 // primitive goal, sub has returned to its home position
-#define home (xpos[0] == xposI[0] && ypos[0] == yposI[0] && xpos[1] == xposI[1] && ypos[1] == yposI[1] && collisionOccured==0);
+#define home (xpos[0] == xposI[0] && ypos[0] == yposI[0] && xpos[1] == xposI[0] && ypos[1] == yposI[1] && xpos[2] == xposI[2] && ypos[2] == yposI[2]);
 // primitive goal, entire survey area has been checked for survivors
 #define goalAreaChecked (&& i:{0..Rows-1}@(&& j:{0..Cols-1}@(world[i][j] != Unvisited))&& home);
 // primitive goal, entire survey area is clear of known survivors
-#define noSurvivors (&& i:{0..Rows-1}@(&& j:{0..Cols-1}@(world[i][j] != Survivor)) && collisionOccured==0);
-
-#define AllAreasExplored (&& i:{0..Rows-1}@(&& j:{0..Cols-1}@(world[i][j] != Unvisited)) && collisionOccured==0);
-
-#define NoCollisionOccured (collisionOccured==0);
+#define noSurvivors (&& i:{0..Rows-1}@(&& j:{0..Cols-1}@(world[i][j] != Survivor)));
+ 
+#define AllAreasExplored (&& i:{0..Rows-1}@(&& j:{0..Cols-1}@(world[i][j] != Unvisited)));
